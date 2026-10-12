@@ -3,46 +3,79 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Voucher Kas Keluar</title>
+    <title>Voucher Kas Keluar - dengan Audit Trail</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body class="bg-gray-100 p-8 font-sans">
-    <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
-        <h2 class="text-2xl font-bold mb-6 text-gray-800">Entri Voucher Kas Keluar</h2>
+    <div class="max-w-5xl mx-auto space-y-8">
         
-        <div id="journal-rows" class="space-y-4 mb-4">
-            <!-- Baris Jurnal Default -->
-            <div class="flex gap-4 items-end journal-row">
-                <div class="flex-1">
-                    <label class="block text-sm font-medium text-gray-700">Nama Akun</label>
-                    <input type="text" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="Kas / Beban">
+        <!-- Form Entri -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h2 class="text-2xl font-bold mb-6 text-gray-800">Entri Voucher Kas Keluar</h2>
+            
+            <div id="journal-rows" class="space-y-4 mb-4">
+                <div class="flex gap-4 items-end journal-row">
+                    <div class="flex-1">
+                        <label class="block text-sm font-medium text-gray-700">Nama Akun</label>
+                        <input type="text" class="akun-input mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="Kas / Beban">
+                    </div>
+                    <div class="w-48">
+                        <label class="block text-sm font-medium text-gray-700">Debit</label>
+                        <input type="number" min="0" class="debit-input mt-1 block w-full border border-gray-300 rounded-md p-2" value="0" oninput="calculateTotals()">
+                    </div>
+                    <div class="w-48">
+                        <label class="block text-sm font-medium text-gray-700">Kredit</label>
+                        <input type="number" min="0" class="kredit-input mt-1 block w-full border border-gray-300 rounded-md p-2" value="0" oninput="calculateTotals()">
+                    </div>
+                    <button type="button" class="bg-red-500 text-white px-3 py-2 rounded-md hover:bg-red-600" onclick="removeRow(this)">Hapus</button>
                 </div>
-                <div class="w-48">
-                    <label class="block text-sm font-medium text-gray-700">Debit</label>
-                    <input type="number" min="0" class="debit-input mt-1 block w-full border border-gray-300 rounded-md p-2" value="0" oninput="calculateTotals()">
-                </div>
-                <div class="w-48">
-                    <label class="block text-sm font-medium text-gray-700">Kredit</label>
-                    <input type="number" min="0" class="kredit-input mt-1 block w-full border border-gray-300 rounded-md p-2" value="0" oninput="calculateTotals()">
-                </div>
-                <button type="button" class="bg-red-500 text-white px-3 py-2 rounded-md hover:bg-red-600" onclick="removeRow(this)">Hapus</button>
+            </div>
+
+            <button type="button" class="text-blue-600 font-semibold mb-6 hover:underline" onclick="addRow()">+ Tambah Baris</button>
+
+            <div class="border-t pt-4 flex justify-end gap-8 text-lg font-bold">
+                <div>Total Debit: Rp <span id="total-debit">0</span></div>
+                <div>Total Kredit: Rp <span id="total-kredit">0</span></div>
+            </div>
+
+            <div id="status-indicator" class="text-right mt-2 text-red-500 font-semibold">Unbalanced</div>
+
+            <div class="mt-6 flex justify-end">
+                <button id="submit-btn" disabled class="bg-gray-400 text-white px-6 py-2 rounded-md cursor-not-allowed transition-colors" onclick="submitVoucher()">
+                    Submit Voucher
+                </button>
             </div>
         </div>
 
-        <button type="button" class="text-blue-600 font-semibold mb-6 hover:underline" onclick="addRow()">+ Tambah Baris</button>
-
-        <div class="border-t pt-4 flex justify-end gap-8 text-lg font-bold">
-            <div>Total Debit: Rp <span id="total-debit">0</span></div>
-            <div>Total Kredit: Rp <span id="total-kredit">0</span></div>
+        <!-- Tabel Riwayat (Audit Trail) -->
+        <div class="bg-white p-6 rounded-lg shadow-md">
+            <h3 class="text-xl font-bold mb-4 text-gray-800">Riwayat Voucher Kas Keluar (Audit Trail)</h3>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Timestamp (created_at)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Penginput (created_by)</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Nilai</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Hash Checksum</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-table-body" class="bg-white divide-y divide-gray-200">
+                        <!-- Data dummy awal agar tidak sepi -->
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2026-10-12 09:15:22</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">zayyan@demo.uts</td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp 5.000.000</td>
+                            <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">POSTED (Locked)</span></td>
+                            <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-400 font-mono">e3b0c44298fc1c149a...</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+            <p class="mt-4 text-sm text-gray-500 italic">*Catatan: Data berstatus POSTED tidak dapat di-Update atau di-Delete sesuai aturan immutability.</p>
         </div>
 
-        <div id="status-indicator" class="text-right mt-2 text-red-500 font-semibold">Unbalanced</div>
-
-        <div class="mt-6 flex justify-end">
-            <button id="submit-btn" disabled class="bg-gray-400 text-white px-6 py-2 rounded-md cursor-not-allowed transition-colors">
-                Submit Voucher
-            </button>
-        </div>
     </div>
 
     <script>
@@ -52,7 +85,7 @@
             row.className = 'flex gap-4 items-end journal-row';
             row.innerHTML = `
                 <div class="flex-1">
-                    <input type="text" class="mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="Nama Akun">
+                    <input type="text" class="akun-input mt-1 block w-full border border-gray-300 rounded-md p-2" placeholder="Nama Akun">
                 </div>
                 <div class="w-48">
                     <input type="number" min="0" class="debit-input mt-1 block w-full border border-gray-300 rounded-md p-2" value="0" oninput="calculateTotals()">
@@ -70,6 +103,8 @@
             calculateTotals();
         }
 
+        let currentTotal = 0;
+
         function calculateTotals() {
             let totalDebit = 0;
             let totalKredit = 0;
@@ -83,11 +118,12 @@
 
             document.getElementById('total-debit').innerText = totalDebit.toLocaleString('id-ID');
             document.getElementById('total-kredit').innerText = totalKredit.toLocaleString('id-ID');
+            
+            currentTotal = totalDebit;
 
             const submitBtn = document.getElementById('submit-btn');
             const statusInd = document.getElementById('status-indicator');
 
-            // Asas zero-discrepancy logic
             if (totalDebit === totalKredit && totalDebit > 0) {
                 submitBtn.disabled = false;
                 submitBtn.className = "bg-green-600 text-white px-6 py-2 rounded-md hover:bg-green-700 cursor-pointer";
@@ -99,6 +135,42 @@
                 statusInd.innerText = "Unbalanced";
                 statusInd.className = "text-right mt-2 text-red-500 font-semibold";
             }
+        }
+
+        function submitVoucher() {
+            // Simulasi hash palsu untuk demo UI
+            const fakeHash = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15) + "...";
+            
+            // Dapatkan waktu saat ini
+            const now = new Date();
+            const timeString = now.getFullYear() + "-" + 
+                              String(now.getMonth() + 1).padStart(2, '0') + "-" + 
+                              String(now.getDate()).padStart(2, '0') + " " + 
+                              String(now.getHours()).padStart(2, '0') + ":" + 
+                              String(now.getMinutes()).padStart(2, '0') + ":" + 
+                              String(now.getSeconds()).padStart(2, '0');
+
+            const tableBody = document.getElementById('history-table-body');
+            const newRow = document.createElement('tr');
+            
+            newRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${timeString}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">jovita@demo.uts</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">Rp ${currentTotal.toLocaleString('id-ID')}</td>
+                <td class="px-6 py-4 whitespace-nowrap"><span class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">POSTED (Locked)</span></td>
+                <td class="px-6 py-4 whitespace-nowrap text-xs text-gray-400 font-mono">${fakeHash}</td>
+            `;
+            
+            // Tambahkan baris baru ke paling atas
+            tableBody.insertBefore(newRow, tableBody.firstChild);
+
+            // Reset form
+            document.querySelectorAll('.debit-input').forEach(input => input.value = 0);
+            document.querySelectorAll('.kredit-input').forEach(input => input.value = 0);
+            document.querySelectorAll('.akun-input').forEach(input => input.value = '');
+            calculateTotals();
+            
+            alert("Voucher Kas Keluar berhasil di-submit dan dikunci (POSTED)!");
         }
     </script>
 </body>
